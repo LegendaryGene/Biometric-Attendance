@@ -1,0 +1,1 @@
+-I/var/lib/flatpak/app/cc.arduino.arduinoide/current/active/files/Arduino/hardware/arduino/avr/cores/arduino
