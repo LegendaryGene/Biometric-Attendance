@@ -624,7 +624,7 @@ Adafruit_Fingerprint::getStructuredPacket(Adafruit_Fingerprint_Packet *packet,
 
 // extensions
 
-Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer){
+Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer, uint8_t* receiveBuffer){
     uint8_t data[] = {(uint8_t)0x08, buffer} ;
     Adafruit_Fingerprint_Packet packet(FINGERPRINT_COMMANDPACKET, sizeof(data), data);
 
@@ -634,32 +634,14 @@ Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer){
       Adafruit_Fingerprint_Packet errpacket(FINGERPRINT_PACKETRECIEVEERR, 0, nullptr);
       return errpacket;
     }
-    Serial.println(packet.start_code, HEX);
-    Serial.println(packet.type, HEX);
-    Serial.println(packet.length, HEX);
-    Serial.println(packet.data[0], HEX);
-    // GET_CMD_PACKET(FINGERPRINT_GETIMAGE,(uint8_t)0x09, (uint8_t)CHARBUFFER_1); 
-    uint8_t loda = 2;
-    Adafruit_Fingerprint_Packet packet_2(FINGERPRINT_COMMANDPACKET, 2, &loda);
-    getStructuredPacket(&packet_2);
-    Serial.println(packet_2.start_code, HEX);
-    Serial.println(packet_2.type, HEX);
-    Serial.println(packet_2.length, HEX);
-    Adafruit_Fingerprint_Packet packet_3(FINGERPRINT_COMMANDPACKET, 2, &loda);
-    getStructuredPacket(&packet_3);
-    Serial.println(packet_3.start_code, HEX);
-    Serial.println(packet_3.type, HEX);
-    Serial.println(packet_3.length, HEX);
-    Adafruit_Fingerprint_Packet packet_4(FINGERPRINT_COMMANDPACKET, 2, &loda);
-    getStructuredPacket(&packet_4);
-    Serial.println(packet_4.start_code, HEX);
-    Serial.println(packet_4.type, HEX);
-    Serial.println(packet_4.length, HEX);
-    Adafruit_Fingerprint_Packet packet_5(FINGERPRINT_COMMANDPACKET, 2, &loda);
-    getStructuredPacket(&packet_5);
-    Serial.println(packet_5.start_code, HEX);
-    Serial.println(packet_5.type, HEX);
-    Serial.println(packet_5.length, HEX);
-    return packet_2;
+    getStructuredPacket(&packet);
+    memcpy(receiveBuffer, packet.data, 128);
+    getStructuredPacket(&packet);
+    memcpy(receiveBuffer+128, packet.data, 128);
+    getStructuredPacket(&packet);
+    memcpy(receiveBuffer+128*2, packet.data, 128);
+    getStructuredPacket(&packet);
+    memcpy(receiveBuffer+128*3, packet.data, 128);
+    return packet;
 }
 
