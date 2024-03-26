@@ -193,7 +193,7 @@ public:
                      uint8_t count = 0);
 
   // extensions
-  Adafruit_Fingerprint_Packet UploadChar(uint8_t buffer, uint8_t* receiveBuffer);
+  Adafruit_Fingerprint_Packet UploadChar(uint8_t buffer, Stream *bluetoothStream);
 
   uint8_t setBaudRate(uint8_t baudrate);
   uint8_t setSecurityLevel(uint8_t level);

@@ -27,7 +27,6 @@
  */
 
 #include "Fingerprint_Sensor.h"
-#include <stdint.h>
 
 //#define FINGERPRINT_DEBUG
 
@@ -624,7 +623,7 @@ Adafruit_Fingerprint::getStructuredPacket(Adafruit_Fingerprint_Packet *packet,
 
 // extensions
 
-Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer, uint8_t* receiveBuffer){
+Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer, Stream *bluetoothStream){
     uint8_t data[] = {(uint8_t)0x08, buffer} ;
     Adafruit_Fingerprint_Packet packet(FINGERPRINT_COMMANDPACKET, sizeof(data), data);
 
@@ -635,13 +634,13 @@ Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer, uin
       return errpacket;
     }
     getStructuredPacket(&packet);
-    memcpy(receiveBuffer, packet.data, 128);
+    for(uint8_t byte : packet.data) bluetoothStream->println(byte);
     getStructuredPacket(&packet);
-    memcpy(receiveBuffer+128, packet.data, 128);
+    for(uint8_t byte : packet.data) bluetoothStream->println(byte);
     getStructuredPacket(&packet);
-    memcpy(receiveBuffer+128*2, packet.data, 128);
+    for(uint8_t byte : packet.data) bluetoothStream->println(byte);
     getStructuredPacket(&packet);
-    memcpy(receiveBuffer+128*3, packet.data, 128);
+    for(uint8_t byte : packet.data) bluetoothStream->println(byte);
     return packet;
 }
 
