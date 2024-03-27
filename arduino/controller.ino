@@ -18,6 +18,9 @@
 
 #include <Fingerprint_Sensor.h>
 
+#define TEMPLATE_STORE 0x67
+#define TEMPLATE_GET   0x68
+#define TEMPLATE_ACK   0x69 
 
 #if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
 // For UNO and others without hardware serial, we must use software serial...
@@ -230,8 +233,19 @@ uint8_t getFingerprintEnroll() {
     return p;
   }
 
+  bluetoothSerial.write(TEMPLATE_STORE);
   finger.UploadChar(CHARBUFFER_1, &bluetoothSerial);
+  while(1){
+    if(bluetoothSerial.available() > 0){
+      uint8_t inb = bluetoothSerial.read();
+      Serial.println(inb, HEX);
+      if(inb == TEMPLATE_ACK) return true;
+    }
+    Serial.println(F("fuk"));
+    delay(100);
+  }
   return true;
 }
+
 
 

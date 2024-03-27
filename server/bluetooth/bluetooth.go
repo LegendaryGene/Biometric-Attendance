@@ -1,9 +1,11 @@
 package bluetooth
 
 import (
+	"errors"
 	"log"
-	"os"
-    "errors"
+	"time"
+
+	"go.bug.st/serial"
 )
 
 const(
@@ -22,22 +24,24 @@ func New(devFile string) *Bluetooth{
 }
 
 func(b *Bluetooth) Run() error{
-    f, err := os.Open(b.filepath) 
-    defer f.Close()
-    if err != nil{
-        return err
+    mode := &serial.Mode{
+        BaudRate: 9600,
     }
-    Listen(f)
+    port, err := serial.Open(b.filepath, mode)
+    if err != nil {
+        log.Fatal(err)
+    }
+    Listen(port)
     return nil
 }
 
-func Listen(f *os.File){
+func Listen(port serial.Port){
     buf := make([]byte, 1) 
     go func(){
         for{
-            bytesRead, err := f.Read(buf)
+            bytesRead, err := port.Read(buf)
             if err != nil {
-                log.Println("Error in reading bytes")
+                log.Println(err)
                 continue
             }
             if bytesRead != 1 {
@@ -45,18 +49,27 @@ func Listen(f *os.File){
                 continue
             }
             if buf[0] == STORE {
-                err := StoreHandler(f)
+                err := StoreHandler(port)
                 if err != nil {
-                    log.Println("Error in Storing")
+                    log.Println(err)
                 }
+                buf[0] = ACK
+                n, err := port.Write(buf);
+                if err != nil {
+                    log.Println(err)
+                }
+                log.Printf("Wrote %d \n", n) 
             }
+            time.Sleep(1*time.Second)
         }
     }()
 }
 
-func StoreHandler(f *os.File) error {
+func StoreHandler(port serial.Port) error {
+    time.Sleep(5*time.Second)
     buf := make([]byte, 512)
-    bytesRead, err := f.Read(buf)
+    bytesRead, err := port.Read(buf)
+    log.Printf("read %d bytes", bytesRead)
     if err != nil {
         return err
     }
