@@ -635,12 +635,24 @@ Adafruit_Fingerprint_Packet Adafruit_Fingerprint::UploadChar(uint8_t buffer, Str
     }
     getStructuredPacket(&packet);
     for(uint8_t byte : packet.data) bluetoothStream->write(byte);
+    //for(uint8_t byte : packet.data){
+    //    Serial.println(byte);
+    //}
     getStructuredPacket(&packet);
     for(uint8_t byte : packet.data) bluetoothStream->write(byte);
+    // for(uint8_t byte : packet.data){
+    //     Serial.println(byte);
+    // }
     getStructuredPacket(&packet);
     for(uint8_t byte : packet.data) bluetoothStream->write(byte);
+    // for(uint8_t byte : packet.data){
+    //     Serial.println(byte);
+    // }
     getStructuredPacket(&packet);
     for(uint8_t byte : packet.data) bluetoothStream->write(byte);
+    // for(uint8_t byte : packet.data){
+    //     Serial.println(byte);
+    // }
     return packet;
 }
 

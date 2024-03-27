@@ -83,12 +83,10 @@ uint8_t readnumber(void) {
 
 void loop()                     // run over and over again
 {
+  fingerprintSerial.listen();
   Serial.println("Ready to enroll a fingerprint!");
   Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  id = readnumber();
-  if (id == 0) {// ID #0 not allowed, try again!
-     return;
-  }
+  id = 1;
   Serial.print("Enrolling ID #");
   Serial.println(id);
 
@@ -233,19 +231,14 @@ uint8_t getFingerprintEnroll() {
     return p;
   }
 
+  bluetoothSerial.listen();
   bluetoothSerial.write(TEMPLATE_STORE);
+  fingerprintSerial.listen();
   finger.UploadChar(CHARBUFFER_1, &bluetoothSerial);
-  while(1){
-    if(bluetoothSerial.available() > 0){
-      uint8_t inb = bluetoothSerial.read();
-      Serial.println(inb, HEX);
-      if(inb == TEMPLATE_ACK) return true;
-    }
-    Serial.println(F("fuk"));
-    delay(100);
-  }
+  bluetoothSerial.listen();
+  while(bluetoothSerial.available() == 0) {}
+  char inb = bluetoothSerial.read();
+  Serial.println(inb);
   return true;
 }
-
-
 

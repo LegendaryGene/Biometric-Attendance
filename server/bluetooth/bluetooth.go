@@ -48,18 +48,23 @@ func Listen(port serial.Port){
                 log.Printf("Expected to read 1 byte, read %d\n", bytesRead)
                 continue
             }
-            if buf[0] == STORE {
-                err := StoreHandler(port)
-                if err != nil {
-                    log.Println(err)
-                }
-                buf[0] = ACK
-                n, err := port.Write(buf);
-                if err != nil {
-                    log.Println(err)
-                }
-                log.Printf("Wrote %d \n", n) 
-            }
+            log.Printf("Read buf as %x", buf[0])
+            // bytesWritten, err := port.Write(buf)
+            // log.Printf("Echo back %d", bytesWritten)
+             if buf[0] == STORE {
+                 err := StoreHandler(port)
+                 if err != nil {
+                     log.Println(err)
+                 }
+                 time.Sleep(2*time.Second)
+                 buf[0] = ACK
+                 log.Print("Writing ack\n") 
+                 n, err := port.Write(buf);
+                 if err != nil {
+                     log.Println(err)
+                 }
+                 log.Printf("Wrote %d \n", n) 
+             }
             time.Sleep(1*time.Second)
         }
     }()
