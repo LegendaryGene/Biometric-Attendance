@@ -1,17 +1,18 @@
 package bluetooth
 
 import (
-	"errors"
 	"log"
 	"time"
+    "bytes"
 
 	"go.bug.st/serial"
 )
 
 const(
-    STORE = 0x67
-    GET   = 0x68
-    ACK   = 0x69
+    ACK = 0x69
+    REGISTER = 0x42
+
+    DDMMYYYY = "02-01-2006"
 )
 
 type Bluetooth struct {
@@ -49,42 +50,40 @@ func Listen(port serial.Port){
                 continue
             }
             log.Printf("Read buf as %x", buf[0])
-            // bytesWritten, err := port.Write(buf)
-            // log.Printf("Echo back %d", bytesWritten)
-             if buf[0] == STORE {
-                 err := StoreHandler(port)
-                 if err != nil {
-                     log.Println(err)
-                 }
-                 time.Sleep(2*time.Second)
-                 buf[0] = ACK
-                 log.Print("Writing ack\n") 
-                 n, err := port.Write(buf);
-                 if err != nil {
-                     log.Println(err)
-                 }
-                 log.Printf("Wrote %d \n", n) 
-             }
+            if buf[0] == REGISTER {
+                time.Sleep(2*time.Second)
+                packet := make([]byte, 26);
+                nbytes, err := port.Read(packet);
+                if err != nil || nbytes != 26 {
+                    log.Println("Error in reading the packet")
+                }
+                rollno, phoneno, adminpass, date := parseRegisterPacket(packet)
+                log.Printf("%s %s %s %s\n", rollno, phoneno, adminpass, date)
+
+            }
             time.Sleep(1*time.Second)
         }
     }()
 }
 
-func StoreHandler(port serial.Port) error {
-    time.Sleep(5*time.Second)
-    buf := make([]byte, 512)
-    bytesRead, err := port.Read(buf)
-    log.Printf("read %d bytes", bytesRead)
-    if err != nil {
-        return err
+
+func parseRegisterPacket(packet []byte) (string, string, string, string){
+    rollbytes := bytes.NewBufferString("")
+    phonebytes := bytes.NewBufferString("")
+    adminbytes := bytes.NewBufferString("")
+
+    for i := 0; i < 6; i++ {
+        rollbytes.WriteByte(packet[i])
     }
-    if bytesRead != 512 {
-        return errors.New("Expected 512 bytes") 
+    for i := 6; i < 16; i++ {
+        phonebytes.WriteByte(packet[i])
     }
-    log.Println("Recv request to store template")
-    log.Print(buf)
-    return nil
+    for i := 16; i < 26; i++ {
+        adminbytes.WriteByte(packet[i])
+    }
+    
+    now := time.Now().UTC()
+    
+    return rollbytes.String(), phonebytes.String(), adminbytes.String(), now.Format(DDMMYYYY)
 }
-
-
 
