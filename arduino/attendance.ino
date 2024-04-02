@@ -29,6 +29,7 @@ byte takePassword(){
     char c = 0;
     while(idx < 10 && c != 'D'){
         c = customKeypad.waitForKey();
+        Serial.print(c);
         if(c == 'D'){
             idx++;
             break;
@@ -50,7 +51,10 @@ void loop(){
         case 'A':
             Serial.println("Registration Request Initiated");
             byte len = takePassword();
-            Serial.println(password);
+            for(int i = 0; i < 10; i++){
+                Serial.print(password[i]);
+            }
+            Serial.println("");
             Serial.println(len); 
             break;
         case 'B':
