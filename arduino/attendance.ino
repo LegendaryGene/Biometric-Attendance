@@ -1,5 +1,6 @@
 #include <Keypad.h>
 #include <Adafruit_Finerprint.h>
+#include <SoftwareSerial.h>
 
 const byte ROWS = 4; 
 const byte COLS = 4; 
@@ -13,10 +14,21 @@ char hexaKeys[ROWS][COLS] = {
 
 byte rowPins[ROWS] = {13, 12, 11, 10}; 
 byte colPins[COLS] = {9, 8, 7, 6}; 
-
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 
+SoftwareSerial blueSerial(2, 3);
+
 char password[10];
+
+void writeRegisterPacket(){
+    char packet[27];
+    packet[0] = 0x42;
+    int idx = 1;
+    for(int i = 0; i < 6; i++) packet[idx++] = rollno[i];
+    for(int i = 0; i < 10; i++) packet[idx++] = phone[i];
+    for(int i = 0; i < 10; i++) packet[idx++] = password[i];
+    blueSerial.write(packet);
+}
 
 char taskInput(){
     Serial.println("Register(A) or Mark Attendance(B)?");
@@ -179,6 +191,7 @@ void loop(){
             Serial.println("");
             Serial.println(len); 
             while(!getFingerprintEnroll());
+
             break;
         case 'B':
             Serial.println("Req to finger");
