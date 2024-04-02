@@ -23,16 +23,21 @@ char taskInput(){
     return inp;
 }
 
-int takePassword(){
+byte takePassword(){
     Serial.println("Enter Admin Password");
-    int idx = 0;
+    byte idx = 0;
     char c = 0;
     while(idx < 10 && c != 'D'){
         c = customKeypad.waitForKey();
-        if(c == 'D') break;
+        if(c == 'D'){
+            idx++;
+            break;
+        }
         password[idx] = c;
         idx++;
     }
+    for(int i = idx; i < 10; i++) password[i] = 'x';
+    return idx;
 }
 
 void setup(){
@@ -44,8 +49,9 @@ void loop(){
     switch(inp){
         case 'A':
             Serial.println("Registration Request Initiated");
-            takePassword();
-            
+            byte len = takePassword();
+            Serial.println(password);
+            Serial.println(len); 
             break;
         case 'B':
             Serial.println("Req to finger");
