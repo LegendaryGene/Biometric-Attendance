@@ -21,6 +21,7 @@ SoftwareSerial blueSerial(2, 3);
 char password[10];
 char phone[10];
 char rollno[6];
+int id_detected=0;
 
 void writeRegisterPacket(){
     char packet[27];
@@ -29,6 +30,16 @@ void writeRegisterPacket(){
     for(int i = 0; i < 6; i++) packet[idx++] = rollno[i];
     for(int i = 0; i < 10; i++) packet[idx++] = phone[i];
     for(int i = 0; i < 10; i++) packet[idx++] = password[i];
+    blueSerial.write(packet);
+}
+
+void writeAttendancePacket(){
+    char packet[5];
+    packet[0] = 0x42;
+    packet[1] = (uint8_t)(id_detected >> 24);
+    packet[2] = (uint8_t)(id_detected >> 16);
+    packet[3] = (uint8_t)(id_detected >> 8);
+    packet[4] = (uint8_t)(id_detected);
     blueSerial.write(packet);
 }
 
@@ -230,9 +241,12 @@ void loop(){
             writeRegisterPacket();
             break;
         case 'B':
-            Serial.println("Req to finger");
+            Serial.println("Mark Attendance");
+//            while(!getFingerprintEnroll());
+            writeAttendancePacket();
             break;
         default:
             Serial.println("Invalid Input");
     }
 }
+
