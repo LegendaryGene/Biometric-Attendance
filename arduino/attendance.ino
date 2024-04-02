@@ -177,6 +177,7 @@ uint8_t getFingerprintEnroll() {
 
 void setup(){
     Serial.begin(9600);
+    blueSerial.begin(9600);
 }
 
 void loop(){
