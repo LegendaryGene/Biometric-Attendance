@@ -1,10 +1,12 @@
 package bluetooth
 
 import (
+	"bytes"
 	"log"
 	"time"
-    "bytes"
 
+	"github.com/ShivamIITK21/Biometric-Attendance/server/db"
+	"github.com/ShivamIITK21/Biometric-Attendance/server/models"
 	"go.bug.st/serial"
 )
 
@@ -12,7 +14,7 @@ const(
     ACK = 0x69
     REGISTER = 0x42
 
-    DDMMYYYY = "02-01-2006"
+    DDMMYY = "02-01-06"
 )
 
 type Bluetooth struct {
@@ -52,14 +54,27 @@ func Listen(port serial.Port){
             log.Printf("Read buf as %x", buf[0])
             if buf[0] == REGISTER {
                 time.Sleep(2*time.Second)
-                packet := make([]byte, 26);
+                packet := make([]byte, 27);
                 nbytes, err := port.Read(packet);
-                if err != nil || nbytes != 26 {
+                if err != nil || nbytes != 27 {
                     log.Println("Error in reading the packet")
                 }
-                rollno, phoneno, adminpass, date := parseRegisterPacket(packet)
-                log.Printf("%s %s %s %s\n", rollno, phoneno, adminpass, date)
+                rollno, phoneno, adminpass, date, id := parseRegisterPacket(packet)
+                log.Printf("Register packet req with %s %s %s %s %d\n", rollno, phoneno, adminpass, date, id)
+                var admin models.Admin
+                result := db.DB.First(&admin)
+                if result.Error != nil {
+                    log.Println("No admin registered")
+                }
+                if (admin.Password == adminpass) {
+                    writeRegisterResponsePacket(port, true, date)
+                    newuser := models.User{RollNo: rollno, PhoneNo: phoneno, CreatedOn: date, Id: id}
+                    db.DB.Create(&newuser)
+                } else {
+                    writeRegisterResponsePacket(port, false, date)
+                }
 
+                
             }
             time.Sleep(1*time.Second)
         }
@@ -67,7 +82,7 @@ func Listen(port serial.Port){
 }
 
 
-func parseRegisterPacket(packet []byte) (string, string, string, string){
+func parseRegisterPacket(packet []byte) (string, string, string, string, byte ){
     rollbytes := bytes.NewBufferString("")
     phonebytes := bytes.NewBufferString("")
     adminbytes := bytes.NewBufferString("")
@@ -82,8 +97,30 @@ func parseRegisterPacket(packet []byte) (string, string, string, string){
         adminbytes.WriteByte(packet[i])
     }
     
+    id := packet[26]
+    
     now := time.Now().UTC()
     
-    return rollbytes.String(), phonebytes.String(), adminbytes.String(), now.Format(DDMMYYYY)
+    return rollbytes.String(), phonebytes.String(), adminbytes.String(), now.Format(DDMMYY), id
+}
+
+func writeRegisterResponsePacket(port serial.Port, isAdmin bool, date string){
+    response := make([]byte, 10)
+    response[0] = ACK
+    if isAdmin {
+        response[1] = 1
+    } else{
+        response[1] = 0
+    } 
+    for i := 0; i < 8; i++ {
+        var b byte
+        b = date[i]
+        response[i+2] = b
+    }
+    
+    bytesw, err := port.Write(response)
+    if bytesw != 10 || err != nil {
+        log.Println("Error in writing register response packet")
+    }
 }
 
