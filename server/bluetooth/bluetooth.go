@@ -53,11 +53,13 @@ func Listen(port serial.Port){
             }
             log.Printf("Read buf as %x", buf[0])
             if buf[0] == REGISTER {
-                time.Sleep(2*time.Second)
+                time.Sleep(5*time.Second)
                 packet := make([]byte, 27);
                 nbytes, err := port.Read(packet);
-                if err != nil || nbytes != 27 {
+                if err != nil {
                     log.Println("Error in reading the packet")
+                }else if nbytes != 27{
+                    log.Println("Bytes received less than 27")
                 }
                 rollno, phoneno, adminpass, date, id := parseRegisterPacket(packet)
                 log.Printf("Register packet req with %s %s %s %s %d\n", rollno, phoneno, adminpass, date, id)
@@ -117,7 +119,7 @@ func writeRegisterResponsePacket(port serial.Port, isAdmin bool, date string){
         b = date[i]
         response[i+2] = b
     }
-    
+    log.Println("Writing....")
     bytesw, err := port.Write(response)
     if bytesw != 10 || err != nil {
         log.Println("Error in writing register response packet")
