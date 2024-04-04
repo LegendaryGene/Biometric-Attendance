@@ -28,11 +28,16 @@ byte colPins[COLS] = {9, 8, 7, 6};
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS); 
 
 SoftwareSerial blueSerial(2, 3);
+SoftwareSerial A9Serial(RX_PIN, TX_PIN);
 
 char password[11];
 char phone[11];
 char rollno[7];
-int id_detected=0;
+uint8_t id=0;
+uint8_t id_detected=0;
+char recvd_phone[10];
+char recvd_rollno[6];
+char recvd_date[8];
 
 void lcdPrint(String top, String bottom){
   lcd.setCursor(0,0);
@@ -147,6 +152,27 @@ void takeRollNo(){
         idx++;
     }
     for(int i = idx; i < 7; i++) rollno[i] = 'x';
+}
+
+void SendMessage(int mode){
+  A9Serial.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);  // Delay of 1000 milli seconds or 1 second
+  if(mode==0){
+    A9Serial.println(String("AT+CMGS=\"+91")+phone+String("\"\r")); // Replace x with mobile number
+    delay(1000);
+    A9Serial.println(String("Roll Number ")+rollno+String(" has been registered on ")+recvd_date);// The SMS text you want to send
+    delay(100);
+    A9Serial.println((char)26);// ASCII code of CTRL+Z
+    delay(1000);
+  }
+  else{
+    A9Serial.println(String("AT+CMGS=\"+91")+recvd_phone+String("\"\r")); // Replace x with mobile number
+    delay(1000);
+    A9Serial.println(String("Roll Number ")+recvd_rollno+String(" has been marked present for ")+recvd_date);// The SMS text you want to send
+    delay(100);
+    A9Serial.println((char)26);// ASCII code of CTRL+Z
+    delay(1000);
+  }
 }
 
 //uint8_t getFingerprintEnroll() {
@@ -275,6 +301,7 @@ void takeRollNo(){
 void setup(){
     Serial.begin(9600);
     blueSerial.begin(9600);
+    A9Serial.begin(115200);
     lcd.begin(16,2);
 //    String out= "top";
 //    String down = "down";
