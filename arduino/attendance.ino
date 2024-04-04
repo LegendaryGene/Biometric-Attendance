@@ -1,9 +1,20 @@
+#include <LiquidCrystal.h>
+
 #include <Adafruit_Fingerprint.h>
 #include <Keypad.h>
 #include <SoftwareSerial.h>
 
 const byte ROWS = 4; 
-const byte COLS = 4; 
+const byte COLS = 4;
+
+const int LCD_RS=A5;
+const int LCD_EN=A4;
+const int LCD_D4=A3;
+const int LCD_D5=A2;
+const int LCD_D6=A1;
+const int LCD_D7=A0;
+
+LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 char hexaKeys[ROWS][COLS] = {
     {'1', '2', '3', 'A'},
@@ -18,10 +29,17 @@ Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS)
 
 SoftwareSerial blueSerial(2, 3);
 
-char password[10];
-char phone[10];
-char rollno[6];
+char password[11];
+char phone[11];
+char rollno[7];
 int id_detected=0;
+
+void lcdPrint(String top, String bottom){
+  lcd.setCursor(0,0);
+  lcd.print(top);
+  lcd.setCursor(0,1);
+  lcd.print(bottom);
+}
 
 void writeRegisterPacket(){
     char packet[27];
@@ -31,6 +49,11 @@ void writeRegisterPacket(){
     for(int i = 0; i < 10; i++) packet[idx++] = phone[i];
     for(int i = 0; i < 10; i++) packet[idx++] = password[i];
     blueSerial.write(packet);
+}
+
+void clearDisplay(){
+  String clearstring = "                ";
+  lcdPrint(clearstring, clearstring);
 }
 
 void writeAttendancePacket(){
@@ -44,13 +67,25 @@ void writeAttendancePacket(){
 }
 
 char taskInput(){
+    clearDisplay();
+    lcdPrint("A - Register", "B - Mark Attnd");
     Serial.println("Register(A) or Mark Attendance(B)?");
     char inp = customKeypad.waitForKey();
     return inp;
 }
 
+void clean(char *buf, int len){
+  for(int i=0;i<len;i++){
+    buf[i]='\0';
+  }
+}
+
 byte takePassword(){
+    clearDisplay();
+    clean(password, 10);  
     Serial.println("Enter Admin Password");
+    String top = "Enter Adm Pwd";
+    lcdPrint(top, "");
     byte idx = 0;
     char c = 0;
     while(idx < 10 && c != 'D'){
@@ -61,14 +96,21 @@ byte takePassword(){
         }
         Serial.print(c);
         password[idx] = c;
+        lcdPrint(top, password);
         idx++;
     }
-    for(int i = idx; i < 10; i++) password[i] = 'x';
+    if(idx!=10){
+      for(int i = idx; i < 11 i++) password[i] = 'x';
+    }
     return idx;
 }
 
 void takePhone(){
     Serial.println("Enter Phone Number");
+    clearDisplay();
+    clean(phone, 10);
+    String top = "Enter Phone No.";
+    lcdPrint(top, "");
     byte idx = 0;
     char c = 0;
     while(idx < 11 && c != 'D'){
@@ -79,13 +121,18 @@ void takePhone(){
         }
         Serial.print(c);
         phone[idx] = c;
+        lcdPrint(top, phone);
         idx++;
     }
-    for(int i = idx; i < 10; i++) phone[i] = 'x';
+    for(int i = idx; i < 11; i++) phone[i] = 'x';
 }
 
 void takeRollNo(){
     Serial.println("Enter Roll Number");
+    clearDisplay();
+    clean(rollno, 6);
+    String top = "Enter Roll No.";
+    lcdPrint(top, "");
     byte idx = 0;
     char c = 0;
     while(idx < 7 && c != 'D'){
@@ -96,9 +143,10 @@ void takeRollNo(){
         }
         Serial.print(c);
         rollno[idx] = c;
+        lcdPrint(top, rollno);
         idx++;
     }
-    for(int i = idx; i < 6; i++) rollno[i] = 'x';
+    for(int i = idx; i < 7; i++) rollno[i] = 'x';
 }
 
 //uint8_t getFingerprintEnroll() {
@@ -227,26 +275,35 @@ void takeRollNo(){
 void setup(){
     Serial.begin(9600);
     blueSerial.begin(9600);
+    lcd.begin(16,2);
+//    String out= "top";
+//    String down = "down";
+//    char cc[3];
+//    cc[0]='A';cc[1]='B';cc[2]='\0';
+//    lcdPrint(out, cc);
+      lcdPrint("Welcome to", "Fingering");
 }
 
 void loop(){
-    char inp = taskInput();
-    switch(inp){
-        case 'A':
-            Serial.println("Registration Request Initiated");
-            byte len = takePassword();
-            takePhone();
-            takeRollNo(); 
-//            while(!getFingerprintEnroll());
-            writeRegisterPacket();
-            break;
-        case 'B':
-            Serial.println("Mark Attendance");
-//            while(!getFingerprintEnroll());
-            writeAttendancePacket();
-            break;
-        default:
-            Serial.println("Invalid Input");
-    }
+
+    
+     char inp = taskInput();
+     switch(inp){
+         case 'A':
+             Serial.println("Registration Request Initiated");
+             byte len = takePassword();
+             takePhone();
+             takeRollNo(); 
+ //            while(!getFingerprintEnroll());
+             writeRegisterPacket();
+             break;
+         case 'B':
+             Serial.println("Mark Attendance");
+ //            while(!getFingerprintEnroll());
+             writeAttendancePacket();
+             break;
+         default:
+             Serial.println("Invalid Input");
+     }
 }
 
