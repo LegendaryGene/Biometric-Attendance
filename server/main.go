@@ -9,7 +9,7 @@ import (
 )
 
 func main(){
-     b := bluetooth.New("/dev/rfcomm0")
+     b := bluetooth.New("/dev/rfcomm1")
      log.Println("Starting Listener....")
      b.Run()
      for{}
