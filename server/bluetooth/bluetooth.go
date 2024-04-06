@@ -13,6 +13,7 @@ import (
 const(
     ACK = 0x69
     REGISTER = 0x42
+    ATTENDANCE = 0x96
 
     DDMMYY = "02-01-06"
 )
@@ -70,19 +71,40 @@ func Listen(port serial.Port){
                 }
                 if (admin.Password == adminpass) {
                     writeRegisterResponsePacket(port, true, date)
-                    newuser := models.User{RollNo: rollno, PhoneNo: phoneno, CreatedOn: date, Id: id}
+                    newuser := models.User{RollNo: rollno, PhoneNo: phoneno, CreatedOn: date, ID: uint(id)}
                     db.DB.Create(&newuser)
                 } else {
                     writeRegisterResponsePacket(port, false, date)
                 }
-
-                
+            } else if buf[0] == ATTENDANCE {
+                time.Sleep(2*time.Second)
+                packet := make([]byte, 1)
+                nbytes, err := port.Read(packet);
+                if err != nil {
+                    log.Println("Error in reading the packet")
+                }else if nbytes != 1{
+                    log.Println("Bytes received less than 1")
+                }
+                id_matched := parseAttendancePacket(packet)
+                log.Printf("Req with %d", id_matched)
+                var user models.User
+                res := db.DB.First(&user, id_matched)
+                if res.Error != nil {
+                    log.Println("Error in getting user info")
+                }
+                log.Println("Found User->")
+                log.Print(user)
+                date := time.Now().UTC().Format(DDMMYY)
+                writeAttendanceResponsePacket(port, date, user.RollNo, user.PhoneNo)
             }
             time.Sleep(1*time.Second)
         }
     }()
 }
 
+func parseAttendancePacket(packet []byte) uint{
+    return uint(packet[0])
+}
 
 func parseRegisterPacket(packet []byte) (string, string, string, string, byte ){
     rollbytes := bytes.NewBufferString("")
@@ -90,12 +112,21 @@ func parseRegisterPacket(packet []byte) (string, string, string, string, byte ){
     adminbytes := bytes.NewBufferString("")
 
     for i := 0; i < 6; i++ {
+        if packet[i] == 'x' {
+            break
+        }
         rollbytes.WriteByte(packet[i])
     }
     for i := 6; i < 16; i++ {
+        if packet[i] == 'x' {
+            break
+        }
         phonebytes.WriteByte(packet[i])
     }
     for i := 16; i < 26; i++ {
+        if packet[i] == 'x' {
+            break
+        }
         adminbytes.WriteByte(packet[i])
     }
     
@@ -112,7 +143,7 @@ func writeRegisterResponsePacket(port serial.Port, isAdmin bool, date string){
     if isAdmin {
         response[1] = 1
     } else{
-        response[1] = 0
+        response[1] = 47 
     } 
     for i := 0; i < 8; i++ {
         var b byte
@@ -122,6 +153,41 @@ func writeRegisterResponsePacket(port serial.Port, isAdmin bool, date string){
     log.Println("Writing....")
     bytesw, err := port.Write(response)
     if bytesw != 10 || err != nil {
+        log.Println("Error in writing register response packet")
+    }
+}
+
+func writeAttendanceResponsePacket(port serial.Port, date string, rollno string, phno string) {
+    response := make([]byte, 25)
+    response[0] = ACK
+    idx := 1 
+    for i := 0; i < 8; i++{
+        if i < len(date){
+            response[idx] = byte(date[i])
+        }else{
+            response[idx] = 'x'
+        }
+        idx++
+    }
+    for i := 0; i < 6; i++{
+        if i < len(rollno){
+            response[idx] = byte(rollno[i])
+        }else{
+            response[idx] = 'x'
+        }
+        idx++
+    }
+    for i := 0; i < 10; i++{
+        if i < len(phno){
+            response[idx] = byte(phno[i])
+        }else{
+            response[idx] = 'x'
+        }
+        idx++
+    }
+    log.Println("Writing....")
+    bytesw, err := port.Write(response)
+    if bytesw != 25 || err != nil {
         log.Println("Error in writing register response packet")
     }
 }

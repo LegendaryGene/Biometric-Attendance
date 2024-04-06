@@ -8,7 +8,7 @@ type Admin struct{
 type User struct{
     RollNo  string
     PhoneNo string
-    Id     uint8 
+    ID     uint 
     CreatedOn   string
 }
 
