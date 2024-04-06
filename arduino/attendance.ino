@@ -56,6 +56,18 @@ void writeRegisterPacket(){
     blueSerial.write(packet);
 }
 
+void readRegisterResponsePacket(){
+    char res[10];
+    uint8_t nRead = 0;
+    blueSerial.listen():
+    while(nRead != 10){
+        if(blueSerial.available() > 0){
+            res[nRead++] = blueSerial.read();
+        }
+    }
+    for(int i = 0; i < 10; i++) Serial.print(res[i]);
+}
+
 void clearDisplay(){
   String clearstring = "                ";
   lcdPrint(clearstring, clearstring);
