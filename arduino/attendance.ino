@@ -335,6 +335,7 @@ void loop(){
              takeRollNo(); 
  //            while(!getFingerprintEnroll());
              writeRegisterPacket();
+             readRegisterResponsePacket();
              break;
          case 'B':
              Serial.println("Mark Attendance");
