@@ -20,10 +20,11 @@ const(
 
 type Bluetooth struct {
 	filepath string
+    data chan []byte
 }
 
-func New(devFile string) *Bluetooth {
-	b := Bluetooth{filepath: devFile}
+func New(devFile string, data chan []byte) *Bluetooth {
+	b := Bluetooth{filepath: devFile, data: data}
 	return &b
 }
 

@@ -8,8 +8,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Sender struct {
-	Conn *websocket.Conn
+type API struct {
+	data chan []byte
+	server *http.Server
 }
 
 var upgrader = websocket.Upgrader{
@@ -22,8 +23,16 @@ type Message struct {
 	Msg string `json:"msg"`
 }
 
+func New(data chan []byte) *API {
 
-func handle(w http.ResponseWriter, r *http.Request) {
+	a := API{
+		data: data,
+	}
+	return &a
+}
+
+
+func (api *API) handle(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println("Error upgrading connection")
@@ -32,6 +41,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	for {
+
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			fmt.Println("Error reading message from connection")
@@ -47,7 +57,8 @@ func msgHandler(msg []byte) {
 	fmt.Println(string(msg))
 }
 
-func StartAPI() {
-	http.HandleFunc("/ws", handle)
+func (api *API) StartAPI() {	
+	server := http.NewServeMux()
+	server.HandleFunc("/ws", api.handle)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
