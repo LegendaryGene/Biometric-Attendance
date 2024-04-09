@@ -4,15 +4,18 @@ import (
 	"log"
 	//"time"
 
+    "github.com/ShivamIITK21/Biometric-Attendance/server/api"
 	"github.com/ShivamIITK21/Biometric-Attendance/server/bluetooth"
 	//"go.bug.st/serial"
 )
 
 func main(){
-     b := bluetooth.New("/dev/rfcomm0")
-     log.Println("Starting Listener....")
-     b.Run()
-     for{}
+
+    go api.StartAPI()
+    b := bluetooth.New("/dev/rfcomm0")
+    log.Println("Starting Listener....")
+    b.Run()
+    for{}
     // mode := &serial.Mode{
     //     BaudRate: 9600,
     // }

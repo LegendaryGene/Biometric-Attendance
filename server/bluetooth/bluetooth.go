@@ -15,28 +15,28 @@ const(
     REGISTER = 0x42
     ATTENDANCE = 0x96
 
-    DDMMYY = "02-01-06"
+	DDMMYY = "02-01-06"
 )
 
 type Bluetooth struct {
-    filepath    string
+	filepath string
 }
 
-func New(devFile string) *Bluetooth{
-    b := Bluetooth{filepath: devFile}
-    return &b
+func New(devFile string) *Bluetooth {
+	b := Bluetooth{filepath: devFile}
+	return &b
 }
 
-func(b *Bluetooth) Run() error{
-    mode := &serial.Mode{
-        BaudRate: 9600,
-    }
-    port, err := serial.Open(b.filepath, mode)
-    if err != nil {
-        log.Fatal(err)
-    }
-    Listen(port)
-    return nil
+func (b *Bluetooth) Run() error {
+	mode := &serial.Mode{
+		BaudRate: 9600,
+	}
+	port, err := serial.Open(b.filepath, mode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	Listen(port)
+	return nil
 }
 
 func Listen(port serial.Port){
