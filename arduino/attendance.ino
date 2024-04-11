@@ -1,4 +1,4 @@
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <Adafruit_Fingerprint.h>
 #include <Keypad.h>
 #include <SoftwareSerial.h>
@@ -6,14 +6,7 @@
 const byte ROWS = 4;
 const byte COLS = 4;
 
-const int LCD_RS = A5;
-const int LCD_EN = A4;
-const int LCD_D4 = A3;
-const int LCD_D5 = A2;
-const int LCD_D6 = A1;
-const int LCD_D7 = A0;
-
-LiquidCrystal lcd(LCD_RS, LCD_EN, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 char hexaKeys[ROWS][COLS] = {
     {'1', '2', '3', 'A'},
@@ -24,9 +17,8 @@ char hexaKeys[ROWS][COLS] = {
 byte rowPins[ROWS] = {13, 12, 11, 10};
 byte colPins[COLS] = {9, 8, 7, 6};
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-
 SoftwareSerial blueSerial(2, 3);
-SoftwareSerial A9Serial(0, 1);
+SoftwareSerial A9Serial(A0, A1);
 SoftwareSerial FingerSerial(4, 5);
 Adafruit_Fingerprint finger = Adafruit_Fingerprint(&FingerSerial);
 
@@ -39,10 +31,10 @@ char recvd_phone[10];
 char recvd_rollno[6];
 char recvd_date[8];
 char auth = 0;
-// char date[8];
 
 void lcdPrint(String top, String bottom)
 {
+
     lcd.setCursor(0, 0);
     lcd.print(top);
     lcd.setCursor(0, 1);
@@ -64,6 +56,7 @@ void writeRegisterPacket()
     packet[27] = id;
     for (int i = 0; i < 28; i++)
         blueSerial.write(packet[i]);
+    Serial.println("Sent");
 }
 
 void readRegisterResponsePacket()
@@ -88,7 +81,7 @@ void readRegisterResponsePacket()
 
 void clearDisplay()
 {
-    String clearstring = "                ";
+    String clearstring = F("                ");
     lcdPrint(clearstring, clearstring);
 }
 
@@ -118,7 +111,7 @@ void readAttendanceResponsePacket()
         Serial.print(res[i]);
     Serial.println();
     for (int i = 1; i < 9; i++)
-        recvd_date[i - 2] = res[i];
+        recvd_date[i - 1] = res[i];
     for (int i = 9; i < 15; i++)
         recvd_rollno[i - 9] = res[i];
     for (int i = 15; i < 25; i++)
@@ -128,8 +121,8 @@ void readAttendanceResponsePacket()
 char taskInput()
 {
     clearDisplay();
-    lcdPrint("A - Register", "B - Mark Attnd");
-    Serial.println("Register(A) or Mark Attendance(B)?");
+    lcdPrint(F("A - Register"), F("B - Mark Attndce"));
+    Serial.println(F("Register(A) or Mark Attendance(B)?"));
     char inp = customKeypad.waitForKey();
     return inp;
 }
@@ -146,9 +139,9 @@ byte takePassword()
 {
     clearDisplay();
     clean(password, 10);
-    Serial.println("Enter Admin Password");
-    String top = "Enter Adm Pwd";
-    lcdPrint(top, "");
+    Serial.println(F("Enter Admin Password"));
+    String top = F("Enter Adm Pwd");
+    lcdPrint(top, F(""));
     byte idx = 0;
     char c = 0;
     while (idx < 10 && c != 'D')
@@ -174,11 +167,11 @@ byte takePassword()
 
 void takePhone()
 {
-    Serial.println("Enter Phone Number");
+    Serial.println(F("Enter Phone Number"));
     clearDisplay();
     clean(phone, 10);
-    String top = "Enter Phone No.";
-    lcdPrint(top, "");
+    String top = F("Enter Phone No.");
+    lcdPrint(top, F(""));
     byte idx = 0;
     char c = 0;
     while (idx < 11 && c != 'D')
@@ -200,10 +193,10 @@ void takePhone()
 
 void takeRollNo()
 {
-    Serial.println("Enter Roll Number");
+    Serial.println(F("Enter Roll Number"));
     clearDisplay();
     clean(rollno, 6);
-    String top = "Enter Roll No.";
+    String top = F("Enter Roll No.");
     lcdPrint(top, "");
     byte idx = 0;
     char c = 0;
@@ -226,25 +219,60 @@ void takeRollNo()
 
 void SendMessage(int mode)
 {
-    A9Serial.println("AT+CMGF=1"); // Sets the GSM Module in Text Mode
-    delay(1000);                   // Delay of 1000 milli seconds or 1 second
+    A9Serial.listen();
+    A9Serial.println(F("AT+CMGF=1")); // Sets the GSM Module in Text Mode
+    delay(1000);
+    if (A9Serial.available() > 0)
+    {
+        Serial.println(A9Serial.readString());
+    }
+    else
+        Serial.println(F("Not available"));
+    delay(1000); // Delay of 1000 milli seconds or 1 second
     if (mode == 0)
     {
-        A9Serial.println(String("AT+CMGS=\"+91") + phone + String("\"\r")); // Replace x with mobile number
+        String phonenum = F("");
+        String rollnumber = F("");
+        String datetoday = F("");
+        for (int i = 0; i < 10; i++)
+            phonenum += phone[i];
+        for (int i = 0; i < 6; i++)
+            rollnumber += rollno[i];
+        for (int i = 0; i < 8; i++)
+            datetoday += recvd_date[i];
+        //      Serial.println(phonenum);
+        //      Serial.println(rollnumber);
+        A9Serial.println(String(F("AT+CMGS=\"+91")) + phonenum + String(F("\"\r")));
         delay(1000);
-        A9Serial.println(String("Roll Number ") + rollno + String(" has been registered on ") + recvd_date); // The SMS text you want to send
-        delay(100);
+        A9Serial.println(String(F("Roll Number ")) + rollnumber + String(F(" has been registered on ")) + datetoday);
+        delay(1000);
         A9Serial.println((char)26); // ASCII code of CTRL+Z
         delay(1000);
     }
     else
     {
-        A9Serial.println(String("AT+CMGS=\"+91") + recvd_phone + String("\"\r")); // Replace x with mobile number
+        String phonenum = F("");
+        String rollnumber = F("");
+        String datetoday = F("");
+        for (int i = 0; i < 10; i++)
+            phonenum += recvd_phone[i];
+        for (int i = 0; i < 6; i++)
+            rollnumber += recvd_rollno[i];
+        for (int i = 0; i < 8; i++)
+            datetoday += recvd_date[i];
+        //      Serial.println(phonenum);
+        //      Serial.println(rollnumber);
+        //      Serial.println(datetoday);
+        A9Serial.println(String(F("AT+CMGS=\"+91")) + phonenum + String(F("\"\r")));
         delay(1000);
-        A9Serial.println(String("Roll Number ") + recvd_rollno + String(" has been marked present for ") + recvd_date); // The SMS text you want to send
-        delay(100);
+        A9Serial.println(String(F("Roll Number ")) + rollnumber + String(F(" has been marked present for ")) + datetoday);
+        delay(1000);
         A9Serial.println((char)26); // ASCII code of CTRL+Z
         delay(1000);
+    }
+    if (A9Serial.available() > 0)
+    {
+        Serial.println(A9Serial.readString());
     }
 }
 
@@ -253,7 +281,7 @@ uint8_t getFingerprintEnroll()
 
     FingerSerial.listen();
     int p = -1;
-    Serial.print("Waiting for valid finger to enroll as #");
+    Serial.print(F("Waiting for valid finger to enroll as #"));
     Serial.println(id);
     while (p != FINGERPRINT_OK)
     {
@@ -261,19 +289,19 @@ uint8_t getFingerprintEnroll()
         switch (p)
         {
         case FINGERPRINT_OK:
-            Serial.println("Image taken");
+            Serial.println(F("Image taken"));
             break;
         case FINGERPRINT_NOFINGER:
             Serial.print(".");
             break;
         case FINGERPRINT_PACKETRECIEVEERR:
-            Serial.println("Communication error");
+            Serial.println(F("Communication error"));
             break;
         case FINGERPRINT_IMAGEFAIL:
-            Serial.println("Imaging error");
+            Serial.println(F("Imaging error"));
             break;
         default:
-            Serial.println("Unknown error");
+            Serial.println(F("Unknown error"));
             break;
         }
     }
@@ -284,26 +312,26 @@ uint8_t getFingerprintEnroll()
     switch (p)
     {
     case FINGERPRINT_OK:
-        Serial.println("Image converted");
+        Serial.println(F("Image converted"));
         break;
     case FINGERPRINT_IMAGEMESS:
-        Serial.println("Image too messy");
+        Serial.println(F("Image too messy"));
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     case FINGERPRINT_FEATUREFAIL:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     case FINGERPRINT_INVALIDIMAGE:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
-    Serial.println("Remove finger");
+    Serial.println(F("Remove finger"));
     delay(2000);
     p = 0;
     while (p != FINGERPRINT_NOFINGER)
@@ -313,26 +341,26 @@ uint8_t getFingerprintEnroll()
     Serial.print("ID ");
     Serial.println(id);
     p = -1;
-    Serial.println("Place same finger again");
+    Serial.println(F("Place same finger again"));
     while (p != FINGERPRINT_OK)
     {
         p = finger.getImage();
         switch (p)
         {
         case FINGERPRINT_OK:
-            Serial.println("Image taken");
+            Serial.println(F("Image taken"));
             break;
         case FINGERPRINT_NOFINGER:
             Serial.print(".");
             break;
         case FINGERPRINT_PACKETRECIEVEERR:
-            Serial.println("Communication error");
+            Serial.println(F("Communication error"));
             break;
         case FINGERPRINT_IMAGEFAIL:
-            Serial.println("Imaging error");
+            Serial.println(F("Imaging error"));
             break;
         default:
-            Serial.println("Unknown error");
+            Serial.println(F("Unknown error"));
             break;
         }
     }
@@ -343,47 +371,47 @@ uint8_t getFingerprintEnroll()
     switch (p)
     {
     case FINGERPRINT_OK:
-        Serial.println("Image converted");
+        Serial.println(F("Image converted"));
         break;
     case FINGERPRINT_IMAGEMESS:
-        Serial.println("Image too messy");
+        Serial.println(F("Image too messy"));
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     case FINGERPRINT_FEATUREFAIL:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     case FINGERPRINT_INVALIDIMAGE:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
     // OK converted!
-    Serial.print("Creating model for #");
+    Serial.print(F("Creating model for #"));
     Serial.println(id);
 
     p = finger.createModel();
     if (p == FINGERPRINT_OK)
     {
-        Serial.println("Prints matched!");
+        Serial.println(F("Prints matched!"));
     }
     else if (p == FINGERPRINT_PACKETRECIEVEERR)
     {
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     }
     else if (p == FINGERPRINT_ENROLLMISMATCH)
     {
-        Serial.println("Fingerprints did not match");
+        Serial.println(F("Fingerprints did not match"));
         return false;
     }
     else
     {
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
@@ -396,26 +424,26 @@ bool storeTemplate()
     int p = finger.storeModel(id);
     if (p == FINGERPRINT_OK)
     {
-        Serial.println("Stored!");
+        Serial.println(F("Stored!"));
     }
     else if (p == FINGERPRINT_PACKETRECIEVEERR)
     {
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return false;
     }
     else if (p == FINGERPRINT_BADLOCATION)
     {
-        Serial.println("Could not store in that location");
+        Serial.println(F("Could not store in that location"));
         return false;
     }
     else if (p == FINGERPRINT_FLASHERR)
     {
-        Serial.println("Error writing to flash");
+        Serial.println(F("Error writing to flash"));
         return false;
     }
     else
     {
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return false;
     }
     id++;
@@ -427,26 +455,23 @@ void setup()
     Serial.begin(9600);
     blueSerial.begin(9600);
     A9Serial.begin(115200);
-    lcd.begin(16, 2);
-    //    String out= "top";
-    //    String down = "down";
-    //    char cc[3];
-    //    cc[0]='A';cc[1]='B';cc[2]='\0';
-    //    lcdPrint(out, cc);
+    A9Serial.print(F("AT+CMGF=1\r"));
+    delay(100);
+    lcd.init();
+    lcd.backlight();
     finger.begin(57600);
     if (finger.verifyPassword())
     {
-        Serial.println("Found fingerprint sensor!");
+        Serial.println(F("Found fingerprint sensor!"));
     }
     else
     {
-        Serial.println("Did not find fingerprint sensor :(");
+        Serial.println(F("Did not find fingerprint sensor :("));
         while (1)
         {
             delay(1);
         }
     }
-
     Serial.println(F("Reading sensor parameters"));
     finger.getParameters();
     Serial.print(F("Status: 0x"));
@@ -473,19 +498,19 @@ bool getFingerprintID()
     switch (p)
     {
     case FINGERPRINT_OK:
-        Serial.println("Image taken");
+        Serial.println(F("Image taken"));
         break;
     case FINGERPRINT_NOFINGER:
-        Serial.println("No finger detected");
+        Serial.println(F("No finger detected"));
         return false;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     case FINGERPRINT_IMAGEFAIL:
-        Serial.println("Imaging error");
+        Serial.println(F("Imaging error"));
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
@@ -495,22 +520,22 @@ bool getFingerprintID()
     switch (p)
     {
     case FINGERPRINT_OK:
-        Serial.println("Image converted");
+        Serial.println(F("Image converted"));
         break;
     case FINGERPRINT_IMAGEMESS:
-        Serial.println("Image too messy");
+        Serial.println(F("Image too messy"));
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     case FINGERPRINT_FEATUREFAIL:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     case FINGERPRINT_INVALIDIMAGE:
-        Serial.println("Could not find fingerprint features");
+        Serial.println(F("Could not find fingerprint features"));
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
@@ -518,28 +543,28 @@ bool getFingerprintID()
     p = finger.fingerSearch();
     if (p == FINGERPRINT_OK)
     {
-        Serial.println("Found a print match!");
+        Serial.println(F("Found a print match!"));
     }
     else if (p == FINGERPRINT_PACKETRECIEVEERR)
     {
-        Serial.println("Communication error");
+        Serial.println(F("Communication error"));
         return p;
     }
     else if (p == FINGERPRINT_NOTFOUND)
     {
-        Serial.println("Did not find a match");
-        return p;
+        Serial.println(F("Did not find a match"));
+        return false;
     }
     else
     {
-        Serial.println("Unknown error");
+        Serial.println(F("Unknown error"));
         return p;
     }
 
     // found a match!
-    Serial.print("Found ID #");
+    Serial.print(F("Found ID #"));
     Serial.print(finger.fingerID);
-    Serial.print(" with confidence of ");
+    Serial.print(F(" with confidence of "));
     Serial.println(finger.confidence);
 
     id_detected = finger.fingerID;
@@ -548,11 +573,16 @@ bool getFingerprintID()
 
 void loop()
 {
+    lcdPrint("Welcome to", "Advanced Attndce");
+    delay(2000);
     char inp = taskInput();
     Serial.println(inp);
     if (inp == 'A')
     {
-        Serial.println("Registration Request Initiated");
+        clearDisplay();
+        lcdPrint(F("Registering"), F(""));
+        delay(2000);
+        Serial.println(F("Registration Request Initiated"));
         byte len = takePassword();
         takePhone();
         takeRollNo();
@@ -563,23 +593,39 @@ void loop()
         {
             bool res = storeTemplate();
             if (res == true)
-                Serial.println("Registered");
+            {
+                clearDisplay();
+                lcdPrint(F("Registered"), rollno);
+                delay(2000);
+                Serial.println(F("Registered"));
+                SendMessage(0);
+            }
             else
-                Serial.println("Problem in storing");
+            {
+                clearDisplay();
+                lcdPrint(F("Error in"), F("Storing"));
+                delay(2000);
+                Serial.println(F("Problem in storing"));
+            }
         }
         else
         {
-            Serial.println("Who tf r u");
+            clearDisplay();
+            lcdPrint(F("Wrong"), F("Password"));
+            delay(2000);
         }
     }
 
     else if (inp == 'B')
     {
-        Serial.println("Mark Attendance");
+        clearDisplay();
+        lcdPrint(F("Place"), F("Finger"));
+        Serial.println(F("Mark Attendance"));
         while (!getFingerprintID());
         writeAttendancePacket();
         readAttendanceResponsePacket();
+        SendMessage(1);
     }
     else
-        Serial.println("Invalid Input");
+        Serial.println(F("Invalid Input"));
 }
