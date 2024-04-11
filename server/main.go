@@ -1,7 +1,7 @@
 package main
 
 import (
-	// "log"
+	"log"
 	//"time"
 
     "github.com/ShivamIITK21/Biometric-Attendance/server/api"
@@ -18,14 +18,14 @@ func main(){
 
     // go api.StartAPI()
     data := make(chan []byte)
-    b := bluetooth.New("/dev/null", data)
+    b := bluetooth.New("/dev/rfcomm0", data)
     
     // b := bluetooth.New("/dev/rfcomm0", data)
+    log.Println("Starting Listener....")
     api:= api.New(data)
     go api.StartAPI()
     go b.Run()
 
-    // log.Println("Starting Listener....")
     // b.Run()
     for{}
     // mode := &serial.Mode{
