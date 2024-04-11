@@ -6,7 +6,7 @@ import (
 
     "github.com/ShivamIITK21/Biometric-Attendance/server/api"
 	"github.com/ShivamIITK21/Biometric-Attendance/server/bluetooth"
-	//"go.bug.st/serial"
+	// "go.bug.st/serial"
 )
 
 // type Server struct {
@@ -15,6 +15,8 @@ import (
 // }
 
 func main(){
+
+    // api:
 
     // go api.StartAPI()
     data := make(chan []byte)

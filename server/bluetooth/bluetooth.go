@@ -73,9 +73,12 @@ func Listen(port serial.Port, data chan []byte){
                 if (admin.Password == adminpass) {
                     writeRegisterResponsePacket(port, true, date)
                     newuser := models.User{RollNo: rollno, PhoneNo: phoneno, CreatedOn: date, ID: uint(id)}
-                    db.DB.Create(&newuser)
+                    result:=db.DB.Create(&newuser)
+                    if result.Error !=nil{
+                        log.Println("Error in creating user")
+                    }
                     
-                    data <- []byte("New User Registered")
+                    // data <- []byte("New User Registered")
 
 
                 } else {
@@ -100,6 +103,13 @@ func Listen(port serial.Port, data chan []byte){
                 log.Println("Found User->")
                 log.Print(user)
                 date := time.Now().UTC().Format(DDMMYY)
+                var entry models.Logs
+                entry.RollNo = user.RollNo
+                entry.EnterOn = date
+                res = db.DB.Create(&entry)
+                if res.Error != nil {
+                    log.Println("Could not insert log in db")
+                }
                 writeAttendanceResponsePacket(port, date, user.RollNo, user.PhoneNo)
             }
             time.Sleep(1*time.Second)

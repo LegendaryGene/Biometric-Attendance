@@ -1,11 +1,15 @@
 package api
 
 import (
+	// "fmt"
 	"fmt"
-	"github.com/ShivamIITK21/Biometric-Attendance/server/models"
 	"log"
 	"net/http"
-	// "github.com/ShivamIITK21/Biometric-Attendance/server/db
+	"time"
+
+	"github.com/ShivamIITK21/Biometric-Attendance/server/models"
+
+	// "github.com/ShivamIITK21/Biometric-Attendance/server/db"
 	"github.com/gorilla/websocket"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -19,6 +23,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 // type Users struct {
@@ -42,12 +48,14 @@ func New(data chan []byte) *API {
 	return &a
 }
 
-func (api *API) handle(w http.ResponseWriter, r *http.Request) {
+func handle(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println("Error upgrading connection")
 		return
 	}
+	// log.Println("here")
+
 	defer conn.Close()
 
 	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
@@ -56,6 +64,7 @@ func (api *API) handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
+		time.Sleep(1*time.Second)
 
 		// _, msg, err := conn.ReadMessage()
 		// if err != nil {
@@ -76,8 +85,6 @@ func (api *API) handle(w http.ResponseWriter, r *http.Request) {
 		// go msgHandler()
 		conn.WriteJSON(res)
 
-
-
 		// select {
 		// 	case data := <-api.data:
 		// 		err := conn.WriteMessage(websocket.TextMessage, data)
@@ -93,8 +100,20 @@ func (api *API) handle(w http.ResponseWriter, r *http.Request) {
 
 // }
 
+// func (api *API) StartAPI() {
+// 	server := http.NewServeMux()
+// 	server.HandleFunc("/ws", handle)
+// 	log.Println("Starting API....")
+// 	log.Fatal(http.ListenAndServe(":8080", nil))
+// }
+
 func (api *API) StartAPI() {
-	server := http.NewServeMux()
-	server.HandleFunc("/ws", api.handle)
+	http.HandleFunc("/ws", handle)
+	log.Println("Starting API....")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
+// func handler(w http.ResponseWriter, r *http.Request) {
+// 	fmt.Println("here")
+// 	fmt.Fprintf(w, "Hello, %q", r.URL.Path)
+// }
