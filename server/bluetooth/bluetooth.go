@@ -36,11 +36,11 @@ func (b *Bluetooth) Run() error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	Listen(port)
+	Listen(port, b.data)
 	return nil
 }
 
-func Listen(port serial.Port){
+func Listen(port serial.Port, data chan []byte){
     buf := make([]byte, 1) 
     go func(){
         for{
@@ -74,6 +74,10 @@ func Listen(port serial.Port){
                     writeRegisterResponsePacket(port, true, date)
                     newuser := models.User{RollNo: rollno, PhoneNo: phoneno, CreatedOn: date, ID: uint(id)}
                     db.DB.Create(&newuser)
+                    
+                    data <- []byte("New User Registered")
+
+
                 } else {
                     writeRegisterResponsePacket(port, false, date)
                 }
