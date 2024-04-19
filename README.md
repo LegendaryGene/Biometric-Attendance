@@ -1,0 +1,1 @@
+An extension to the Arduino Adafruit Fingerprint library and helper code with a simple backend database with a MUI frontend for biometric attendance registration, marking and logging. Presented as course project for EE381A (2023-24-II).
